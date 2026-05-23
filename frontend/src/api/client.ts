@@ -5,6 +5,13 @@
 
 const TOKEN_KEY = "husky.token";
 
+/** Optional production API origin (e.g. Vercel env VITE_API_BASE=https://your-rover:8000). */
+const API_BASE = (import.meta.env.VITE_API_BASE as string | undefined)?.replace(/\/$/, "") ?? "";
+
+function apiUrl(path: string): string {
+  return `${API_BASE}${path}`;
+}
+
 export function getToken(): string {
   return localStorage.getItem(TOKEN_KEY) ?? "";
 }
@@ -28,7 +35,7 @@ async function request<T>(method: string, path: string, body?: unknown): Promise
   const headers: Record<string, string> = { "Content-Type": "application/json" };
   if (token) headers["Authorization"] = `Bearer ${token}`;
 
-  const res = await fetch(path, {
+  const res = await fetch(apiUrl(path), {
     method,
     headers,
     body: body === undefined ? undefined : JSON.stringify(body),
@@ -66,14 +73,14 @@ function cameraTokenQuery(): string {
 
 export function streamUrl(camId: string): string {
   const q = cameraTokenQuery();
-  return `/api/cameras/${encodeURIComponent(camId)}/stream${q ? `?${q}` : ""}`;
+  return apiUrl(`/api/cameras/${encodeURIComponent(camId)}/stream${q ? `?${q}` : ""}`);
 }
 
 export function snapshotUrl(camId: string): string {
   const params = new URLSearchParams({ ts: String(Date.now()) });
   const t = getToken();
   if (t) params.set("token", t);
-  return `/api/cameras/${encodeURIComponent(camId)}/snapshot?${params}`;
+  return apiUrl(`/api/cameras/${encodeURIComponent(camId)}/snapshot?${params}`);
 }
 
 /** Single JPEG frame from the camera snapshot endpoint (for save / preview). */
