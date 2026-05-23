@@ -1,0 +1,183 @@
+{
+  "session_id": "20260523_150028",
+  "start_time": "2026-05-23T15:00:28.526795",
+  "measurements": [
+    {
+      "measurement_id": 1,
+      "sample_id": "sample_1779573628",
+      "timestamp": "2026-05-23T15:00:28.558143",
+      "peaks_detected": 0,
+      "biosignature_analysis": {
+        "chlorophyll": false,
+        "carotenoids": false,
+        "organics": false,
+        "organic_pct": null,
+        "confidence": "none",
+        "interpretation": "No organic signal detected"
+      },
+      "spectrum_file": "spectroscopy_logs/session_20260523_150028/spectra/sample_1779573628_spectrum.npz",
+      "image_file": "spectroscopy_logs/session_20260523_150028/images/sample_1779573628_raw.npy"
+    },
+    {
+      "measurement_id": 2,
+      "sample_id": "sample_1779573631",
+      "timestamp": "2026-05-23T15:00:31.597633",
+      "peaks_detected": 0,
+      "biosignature_analysis": {
+        "chlorophyll": false,
+        "carotenoids": false,
+        "organics": false,
+        "organic_pct": null,
+        "confidence": "none",
+        "interpretation": "No organic signal detected"
+      },
+      "spectrum_file": "spectroscopy_logs/session_20260523_150028/spectra/sample_1779573631_spectrum.npz",
+      "image_file": "spectroscopy_logs/session_20260523_150028/images/sample_1779573631_raw.npy"
+    },
+    {
+      "measurement_id": 3,
+      "sample_id": "sample_1779573634",
+      "timestamp": "2026-05-23T15:00:34.634983",
+      "peaks_detected": 0,
+      "biosignature_analysis": {
+        "chlorophyll": false,
+        "carotenoids": false,
+        "organics": false,
+        "organic_pct": null,
+        "confidence": "none",
+        "interpretation": "No organic signal detected"
+      },
+      "spectrum_file": "spectroscopy_logs/session_20260523_150028/spectra/sample_1779573634_spectrum.npz",
+      "image_file": "spectroscopy_logs/session_20260523_150028/images/sample_1779573634_raw.npy"
+    },
+    {
+      "measurement_id": 4,
+      "sample_id": "sample_1779573637",
+      "timestamp": "2026-05-23T15:00:37.671976",
+      "peaks_detected": 0,
+      "biosignature_analysis": {
+        "chlorophyll": false,
+        "carotenoids": false,
+        "organics": false,
+        "organic_pct": null,
+        "confidence": "none",
+        "interpretation": "No organic signal detected"
+      },
+      "spectrum_file": "spectroscopy_logs/session_20260523_150028/spectra/sample_1779573637_spectrum.npz",
+      "image_file": "spectroscopy_logs/session_20260523_150028/images/sample_1779573637_raw.npy"
+    },
+    {
+      "measurement_id": 5,
+      "sample_id": "sample_1779573640",
+      "timestamp": "2026-05-23T15:00:40.709198",
+      "peaks_detected": 0,
+      "biosignature_analysis": {
+        "chlorophyll": false,
+        "carotenoids": false,
+        "organics": false,
+        "organic_pct": null,
+        "confidence": "none",
+        "interpretation": "No organic signal detected"
+      },
+      "spectrum_file": "spectroscopy_logs/session_20260523_150028/spectra/sample_1779573640_spectrum.npz",
+      "image_file": "spectroscopy_logs/session_20260523_150028/images/sample_1779573640_raw.npy"
+    },
+    {
+      "measurement_id": 6,
+      "sample_id": "sample_1779573643",
+      "timestamp": "2026-05-23T15:00:43.749059",
+      "peaks_detected": 0,
+      "biosignature_analysis": {
+        "chlorophyll": false,
+        "carotenoids": false,
+        "organics": false,
+        "organic_pct": null,
+        "confidence": "none",
+        "interpretation": "No organic signal detected"
+      },
+      "spectrum_file": "spectroscopy_logs/session_20260523_150028/spectra/sample_1779573643_spectrum.npz",
+      "image_file": "spectroscopy_logs/session_20260523_150028/images/sample_1779573643_raw.npy"
+    },
+    {
+      "measurement_id": 7,
+      "sample_id": "sample_1779573646",
+      "timestamp": "2026-05-23T15:00:46.786394",
+      "peaks_detected": 0,
+      "biosignature_analysis": {
+        "chlorophyll": false,
+        "carotenoids": false,
+        "organics": false,
+        "organic_pct": null,
+        "confidence": "none",
+        "interpretation": "No organic signal detected"
+      },
+      "spectrum_file": "spectroscopy_logs/session_20260523_150028/spectra/sample_1779573646_spectrum.npz",
+      "image_file": "spectroscopy_logs/session_20260523_150028/images/sample_1779573646_raw.npy"
+    },
+    {
+      "measurement_id": 8,
+      "sample_id": "sample_1779573649",
+      "timestamp": "2026-05-23T15:00:49.820034",
+      "peaks_detected": 0,
+      "biosignature_analysis": {
+        "chlorophyll": false,
+        "carotenoids": false,
+        "organics": false,
+        "organic_pct": null,
+        "confidence": "none",
+        "interpretation": "No organic signal detected"
+      },
+      "spectrum_file": "spectroscopy_logs/session_20260523_150028/spectra/sample_1779573649_spectrum.npz",
+      "image_file": "spectroscopy_logs/session_20260523_150028/images/sample_1779573649_raw.npy"
+    },
+    {
+      "measurement_id": 9,
+      "sample_id": "sample_1779573652",
+      "timestamp": "2026-05-23T15:00:52.853702",
+      "peaks_detected": 0,
+      "biosignature_analysis": {
+        "chlorophyll": false,
+        "carotenoids": false,
+        "organics": false,
+        "organic_pct": null,
+        "confidence": "none",
+        "interpretation": "No organic signal detected"
+      },
+      "spectrum_file": "spectroscopy_logs/session_20260523_150028/spectra/sample_1779573652_spectrum.npz",
+      "image_file": "spectroscopy_logs/session_20260523_150028/images/sample_1779573652_raw.npy"
+    },
+    {
+      "measurement_id": 10,
+      "sample_id": "sample_1779573655",
+      "timestamp": "2026-05-23T15:00:55.892535",
+      "peaks_detected": 0,
+      "biosignature_analysis": {
+        "chlorophyll": false,
+        "carotenoids": false,
+        "organics": false,
+        "organic_pct": null,
+        "confidence": "none",
+        "interpretation": "No organic signal detected"
+      },
+      "spectrum_file": "spectroscopy_logs/session_20260523_150028/spectra/sample_1779573655_spectrum.npz",
+      "image_file": "spectroscopy_logs/session_20260523_150028/images/sample_1779573655_raw.npy"
+    },
+    {
+      "measurement_id": 11,
+      "sample_id": "sample_1779573658",
+      "timestamp": "2026-05-23T15:00:58.928035",
+      "peaks_detected": 0,
+      "biosignature_analysis": {
+        "chlorophyll": false,
+        "carotenoids": false,
+        "organics": false,
+        "organic_pct": null,
+        "confidence": "none",
+        "interpretation": "No organic signal detected"
+      },
+      "spectrum_file": "spectroscopy_logs/session_20260523_150028/spectra/sample_1779573658_spectrum.npz",
+      "image_file": "spectroscopy_logs/session_20260523_150028/images/sample_1779573658_raw.npy"
+    }
+  ],
+  "end_time": "2026-05-23T15:01:00.377720"
+}

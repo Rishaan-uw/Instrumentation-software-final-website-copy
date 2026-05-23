@@ -35,10 +35,13 @@ class Settings(BaseSettings):
     #   HUSKY_CAMERAS="0"
     cameras: str = ""
 
-    # Selects the chem data source.
-    #   "mock"            - synthetic plausible readings (default)
-    #   "csv:/path/file"  - tail a CSV that an instrument writes
+    # Color read test source (colorReadTest.csv → Organic Analysis panel).
+    #   "mock"  – fixed sample pct_diff for laptop dev
+    #   "csv"   – reads colorReadTest.csv from the Pi
     chem_source: str = "mock"
+
+    # Path to colorReadTest.csv on the Pi. Column: pct_diff
+    color_read_csv_path: str = "/home/robot/HR-pi/output_data/colorReadTest.csv"
 
     # Where SpectroscopyLogger writes sessions.
     log_dir: str = "spectroscopy_logs"
@@ -68,14 +71,9 @@ class Settings(BaseSettings):
     #   "csv"   – reads color-band CSV from the Pi (production)
     spectrometer_source: str = "mock"
 
-    # Path to the color spectrometer CSV on the Pi.
+    # Path to peaks_colors.csv on the Pi (6-band spectrometer graph).
     # Columns: Red,Orange,Yellow,Green,Cyan,Blue
     color_csv_path: str = "/home/robot/HR-pi/output_data/peaks_colors.csv"
-
-    # Path to the organic percentage CSV on the Pi.
-    # Must contain a column named "organic_pct" or "organic_percent".
-    # Leave empty to disable organic_pct reading.
-    organic_pct_csv_path: str = ""
 
     # If set, /api/spectrum/latest proxies this URL instead of reading local state.
     # Example: "http://100.80.12.52:9001/spectrum"

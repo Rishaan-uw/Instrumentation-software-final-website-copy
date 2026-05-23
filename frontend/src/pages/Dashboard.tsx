@@ -8,7 +8,7 @@ import ConfidenceBadge from "../components/ConfidenceBadge";
 import ControlBar from "../components/ControlBar";
 import SpectrumChart from "../components/SpectrumChart";
 import { usePolling } from "../hooks/usePolling";
-import { CameraInfo, SpectrumPayload, SystemStatus } from "../types";
+import { CameraInfo, ColorReadReading, SpectrumPayload, SystemStatus } from "../types";
 
 interface Envelope<T> {
   status: "ok" | "no_data";
@@ -17,7 +17,7 @@ interface Envelope<T> {
 
 export default function Dashboard() {
   const [statusBump, setStatusBump] = useState(0);
-  const [spectrumBump, setSpectrumBump] = useState(0);
+  const [colorReadBump, setColorReadBump] = useState(0);
 
   const cameras =
     usePolling(() => api.get<{ cameras: CameraInfo[] }>("/api/cameras"), 10_000) ?? {
@@ -33,15 +33,21 @@ export default function Dashboard() {
   const spectrumEnv = usePolling<Envelope<SpectrumPayload>>(
     () => api.get<Envelope<SpectrumPayload>>("/api/spectrum/latest"),
     1_000,
-    [spectrumBump],
+    [colorReadBump],
   );
   const spectrum = spectrumEnv?.data ?? null;
 
+  const colorReadEnv = usePolling<Envelope<ColorReadReading>>(
+    () => api.get<Envelope<ColorReadReading>>("/api/chem/latest"),
+    1_000,
+    [colorReadBump],
+  );
+  const colorRead = colorReadEnv?.data ?? null;
+
   const handleControlChanged = () => {
     setStatusBump((n) => n + 1);
-    // Force immediate spectrum + organic_pct refresh after engage or sample.
-    setTimeout(() => setSpectrumBump((n) => n + 1), 300);
-    setTimeout(() => setSpectrumBump((n) => n + 1), 1500);
+    setTimeout(() => setColorReadBump((n) => n + 1), 300);
+    setTimeout(() => setColorReadBump((n) => n + 1), 1500);
   };
 
   return (
@@ -63,7 +69,7 @@ export default function Dashboard() {
         style={{ ["--i" as string]: 1 }}
       >
         <div className="lg:col-span-5 order-2 lg:order-1">
-          <ConfidenceBadge bio={spectrum?.biosignatures ?? null} />
+          <ConfidenceBadge reading={colorRead} />
         </div>
         <div className="lg:col-span-7 order-1 lg:order-2">
           <SpectrumChart spectrum={spectrum} />

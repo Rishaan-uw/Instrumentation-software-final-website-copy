@@ -1,8 +1,8 @@
-"""Chem endpoints backed by the configured ChemSource."""
+"""Color read test endpoints backed by colorReadTest.csv."""
 
 from __future__ import annotations
 
-from fastapi import APIRouter, Depends, Query, Request
+from fastapi import APIRouter, Depends, Request
 
 from ..auth import require_token
 
@@ -16,9 +16,3 @@ async def latest(request: Request):
     if reading is None:
         return {"status": "no_data"}
     return {"status": "ok", "data": reading}
-
-
-@router.get("/history")
-async def history(request: Request, minutes: int = Query(5, ge=1, le=60)):
-    chem = request.app.state.chem_source
-    return {"status": "ok", "data": chem.history(minutes=minutes)}

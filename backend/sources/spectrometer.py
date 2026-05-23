@@ -2,8 +2,7 @@
 
 Two implementations:
   SpectrometerService   – wraps processor.py; used in dev with a test .npy frame.
-  CsvColorSpectrometer  – reads color-band intensities from a Pi CSV file;
-                          used in production on the rover.
+  CsvColorSpectrometer  – reads peaks_colors.csv from the Pi; production on the rover.
 
 Both expose the same interface:
   .set_calibration(points)
@@ -16,7 +15,6 @@ import csv
 import math
 import os
 import threading
-import time
 from typing import Any, Dict, List, Optional, Tuple
 
 import numpy as np
@@ -42,6 +40,28 @@ WL_STEP = 5  # nm per generated graph point
 
 def _is_valid(v: float) -> bool:
     return math.isfinite(v)
+
+
+def _parse_float_cell(raw: str) -> Optional[float]:
+    raw = raw.strip()
+    if raw.lower() in ("", "nan", "-nan", "inf", "-inf"):
+        return None
+    try:
+        v = float(raw)
+        return v if _is_valid(v) else None
+    except ValueError:
+        return None
+
+
+def _read_last_csv_row(path: str) -> Optional[Dict[str, str]]:
+    if not os.path.exists(path):
+        return None
+    last_row: Optional[Dict[str, str]] = None
+    with open(path, newline="") as f:
+        reader = csv.DictReader(f)
+        for row in reader:
+            last_row = row
+    return last_row
 
 
 def _build_spectrum(band_values: Dict[str, Optional[float]]) -> Dict[str, Any]:
@@ -100,39 +120,27 @@ class SpectrometerService:
         }
 
 
-# ── CSV-backed color spectrometer (production / Pi) ───────────────────────────
+# ── CSV-backed spectrometer (production / Pi) ────────────────────────────────
 
 class CsvColorSpectrometer:
     """
-    Polls /home/robot/HR-pi/output_data/peaks_colors.csv and
-    (optionally) an organic_pct CSV.
+    Polls peaks_colors.csv on the Pi for 6-band spectrometer graph data.
 
-    CSV format for peaks_colors.csv (header on row 1):
+    CSV format (header on row 1):
         Red,Orange,Yellow,Green,Cyan,Blue
         2.26509,2.07029,1.88324,1.76782,-nan,-6.89396
 
-    The latest row is used each time analyze() is called.
-
-    organic_pct_csv format — any CSV with a column named
-    "organic_pct" or "organic_percent" (latest row wins).
+    The latest row is used on each poll.
     """
 
-    def __init__(
-        self,
-        color_csv: str,
-        organic_pct_csv: str = "",
-        poll_seconds: float = 0.5,
-    ) -> None:
+    def __init__(self, color_csv: str, poll_seconds: float = 0.5) -> None:
         self._color_csv = color_csv
-        self._organic_csv = organic_pct_csv
         self._poll = poll_seconds
         self._latest: Optional[Dict[str, Any]] = None
         self._lock = threading.Lock()
         self._stop = threading.Event()
         self._thread = threading.Thread(target=self._loop, daemon=True, name="CsvColorSpec")
         self._thread.start()
-
-    # ── public interface (matches SpectrometerService) ─────────────────────
 
     def set_calibration(self, points: object) -> None:
         pass  # not applicable for CSV source
@@ -141,13 +149,11 @@ class CsvColorSpectrometer:
         with self._lock:
             if self._latest is not None:
                 return self._latest
-        return self._empty_result()
+        return _empty_spectrum()
 
     def stop(self) -> None:
         self._stop.set()
         self._thread.join(timeout=3)
-
-    # ── background polling ─────────────────────────────────────────────────
 
     def _loop(self) -> None:
         while not self._stop.is_set():
@@ -161,72 +167,30 @@ class CsvColorSpectrometer:
             self._stop.wait(self._poll)
 
     def _read_csv(self) -> Optional[Dict[str, Any]]:
-        if not os.path.exists(self._color_csv):
-            return None
-
-        band_values: Dict[str, Optional[float]] = {}
-        last_row: Optional[Dict[str, str]] = None
-
-        with open(self._color_csv, newline="") as f:
-            reader = csv.DictReader(f)
-            for row in reader:
-                last_row = row
-
+        last_row = _read_last_csv_row(self._color_csv)
         if last_row is None:
             return None
 
+        band_values: Dict[str, Optional[float]] = {}
         for col, *_ in COLOR_BANDS:
-            raw = last_row.get(col, "").strip()
-            if raw.lower() in ("", "nan", "-nan", "inf", "-inf"):
-                band_values[col] = None
-            else:
-                try:
-                    v = float(raw)
-                    band_values[col] = v if _is_valid(v) else None
-                except ValueError:
-                    band_values[col] = None
+            band_values[col] = _parse_float_cell(last_row.get(col, ""))
 
-        spectrum = _build_spectrum(band_values)
-        organic_pct = self._read_organic_pct()
-        biosignatures = _detect_biosignatures_csv(
-            has_organics=any(v is not None for v in band_values.values()),
-            organic_pct=organic_pct,
-        )
-
-        return {**spectrum, "biosignatures": biosignatures}
-
-    def _read_organic_pct(self) -> Optional[float]:
-        if not self._organic_csv or not os.path.exists(self._organic_csv):
+        if not any(v is not None for v in band_values.values()):
             return None
-        try:
-            last_row: Optional[Dict[str, str]] = None
-            with open(self._organic_csv, newline="") as f:
-                reader = csv.DictReader(f)
-                for row in reader:
-                    last_row = row
-            if last_row is None:
-                return None
-            for key in ("organic_pct", "organic_percent", "organic"):
-                raw = last_row.get(key, "").strip()
-                if raw:
-                    v = float(raw)
-                    return v if _is_valid(v) else None
-        except Exception:
-            pass
-        return None
 
-    @staticmethod
-    def _empty_result() -> Dict[str, Any]:
-        return {
-            "wavelengths": [],
-            "intensities": [],
-            "peak_wavelengths": [],
-            "peak_intensities": [],
-            "biosignatures": _detect_biosignatures_csv(False, None),
-        }
+        return _build_spectrum(band_values)
 
 
-# ── Biosignature helpers ───────────────────────────────────────────────────────
+def _empty_spectrum() -> Dict[str, Any]:
+    return {
+        "wavelengths": [],
+        "intensities": [],
+        "peak_wavelengths": [],
+        "peak_intensities": [],
+    }
+
+
+# ── Biosignature helpers (mock / dev spectrometer only) ───────────────────────
 
 def _detect_biosignatures(peak_wavelengths: Any) -> Dict[str, Any]:
     """Legacy heuristic for image-based spectrometer."""
@@ -250,35 +214,6 @@ def _detect_biosignatures(peak_wavelengths: Any) -> Dict[str, Any]:
         "chlorophyll": has_chlorophyll,
         "carotenoids": has_carotenoids,
         "organics": has_organics,
-        "organic_pct": None,
-        "confidence": confidence,
-        "interpretation": interpretation,
-    }
-
-
-ORGANIC_DETECTED_THRESHOLD = 50.0  # % — at or above this value organics are detected
-
-
-def _detect_biosignatures_csv(
-    has_organics: bool,
-    organic_pct: Optional[float],
-) -> Dict[str, Any]:
-    """Biosignature result for CSV color spectrometer."""
-    if organic_pct is not None and organic_pct >= ORGANIC_DETECTED_THRESHOLD:
-        has_organics = True
-    elif organic_pct is not None:
-        has_organics = False
-
-    if has_organics:
-        confidence, interpretation = "low", "Organic signal detected"
-    else:
-        confidence, interpretation = "none", "No organic signal detected"
-
-    return {
-        "chlorophyll": False,
-        "carotenoids": False,
-        "organics": has_organics,
-        "organic_pct": organic_pct,
         "confidence": confidence,
         "interpretation": interpretation,
     }

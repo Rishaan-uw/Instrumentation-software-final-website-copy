@@ -1,13 +1,12 @@
-import { Biosignatures } from "../types";
+import { ColorReadReading } from "../types";
 
 interface Props {
-  bio: Biosignatures | null;
+  reading: ColorReadReading | null;
 }
 
-export default function ConfidenceBadge({ bio }: Props) {
-  const pct = bio?.organic_pct ?? null;
-  // Organics are detected when the color-test percentage is 50 % or above.
-  const detected = pct !== null ? pct >= 50 : (bio?.organics ?? false);
+export default function ConfidenceBadge({ reading }: Props) {
+  const pct = reading?.pct_diff ?? null;
+  const detected = reading?.organics_detected ?? false;
 
   return (
     <section className="panel p-6 md:p-8 h-full flex flex-col overflow-hidden relative">
@@ -17,7 +16,6 @@ export default function ConfidenceBadge({ bio }: Props) {
       </h2>
       <div className="tick-rule mt-3 mb-5" />
 
-      {/* Percentage readout */}
       <div className="flex items-end gap-3 mb-4">
         <span
           className={`display leading-none ${
@@ -36,21 +34,24 @@ export default function ConfidenceBadge({ bio }: Props) {
       </div>
 
       <div className="mono text-[10px] tracking-wider text-ash mb-5">
-        Organic matter — color test result
+        Organic matter — colorReadTest pct_diff
       </div>
 
-      {/* Detection status */}
       <div className="flex flex-col gap-1">
         <span
           className={`mono text-[10px] tracking-[0.25em] uppercase ${
             detected ? "text-sage" : "text-ash"
           }`}
         >
-          {detected ? "\u25cf ORGANICS DETECTED" : "\u25cb NOT DETECTED"}
+          {pct === null
+            ? "\u25cb AWAITING TEST"
+            : detected
+            ? "\u25cf ORGANICS DETECTED"
+            : "\u25cb NOT DETECTED"}
         </span>
-        {bio?.interpretation && (
+        {reading?.interpretation && (
           <span className="mono text-[10px] tracking-wider text-sand mt-1">
-            {bio.interpretation}
+            {reading.interpretation}
           </span>
         )}
       </div>

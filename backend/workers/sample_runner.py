@@ -114,7 +114,7 @@ class SampleRunner:
                 "spectrum": np.array(result["intensities"]),
                 "peak_wavelengths": result["peak_wavelengths"],
                 "peaks_detected": len(result["peak_wavelengths"]),
-                "biosignature_analysis": result["biosignatures"],
+                "biosignature_analysis": result.get("biosignatures", {}),
                 "raw_image": frame,
             },
             sample_id=sample_id,
@@ -126,8 +126,11 @@ class SampleRunner:
     def _default_acquirer(self) -> np.ndarray:
         """Dev acquirer: load test_spectrum.npy and add light noise.
 
-        Replace this in production with a real sensor read.
+        In CSV spectrometer mode the frame is ignored; return a stub array.
         """
+        if self._settings.spectrometer_source == "csv":
+            return np.zeros((1, 1), dtype=np.uint16)
+
         path = self._settings.test_image_path
         if not os.path.exists(path):
             raise FileNotFoundError(

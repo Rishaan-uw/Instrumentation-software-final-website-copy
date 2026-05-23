@@ -2,7 +2,7 @@
 
 Wires together:
   - config + system state + auth
-  - chem source (mock or csv)
+  - color read source (mock or colorReadTest.csv)
   - camera manager
   - spectrometer service + sample runner
   - all routers
@@ -33,10 +33,7 @@ from .workers.sample_runner import SampleRunner
 
 def _build_spectrometer(settings):
     if settings.spectrometer_source == "csv":
-        return CsvColorSpectrometer(
-            color_csv=settings.color_csv_path,
-            organic_pct_csv=settings.organic_pct_csv_path,
-        )
+        return CsvColorSpectrometer(color_csv=settings.color_csv_path)
     return SpectrometerService()
 
 
@@ -48,7 +45,7 @@ async def lifespan(app: FastAPI):
     spectrometer = _build_spectrometer(settings)
     spectrometer.set_calibration([(p.pixel, p.wavelength_nm) for p in state.calibration])
 
-    chem_source = build_chem_source(settings.chem_source)
+    chem_source = build_chem_source(settings.chem_source, settings.color_read_csv_path)
     chem_source.start()
 
     camera_manager = CameraManager(settings.camera_specs)

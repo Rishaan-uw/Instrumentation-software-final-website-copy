@@ -15,13 +15,10 @@ export interface SystemStatus {
   calibration: CalibrationPoint[];
 }
 
-export interface Biosignatures {
-  chlorophyll: boolean;
-  carotenoids: boolean;
-  organics: boolean;
-  /** Percentage of organic matter from the color test (0–100). Null until measured. */
-  organic_pct: number | null;
-  confidence: "none" | "low" | "medium" | "high";
+export interface ColorReadReading {
+  timestamp: number;
+  pct_diff: number;
+  organics_detected: boolean;
   interpretation: string;
 }
 
@@ -32,16 +29,6 @@ export interface SpectrumPayload {
   intensities: number[];
   peak_wavelengths: number[];
   peak_intensities: number[];
-  biosignatures: Biosignatures;
-}
-
-export interface ChemReading {
-  timestamp: number;
-  ph: number;
-  conductivity_us_cm: number;
-  temperature_c: number;
-  moisture_pct: number;
-  organic_index: number;
 }
 
 export interface CameraInfo {
@@ -81,6 +68,6 @@ export interface SessionDetail {
     sample_id: string;
     timestamp: string;
     peaks_detected: number;
-    biosignature_analysis: Biosignatures;
+    biosignature_analysis: Record<string, unknown>;
   }>;
 }
