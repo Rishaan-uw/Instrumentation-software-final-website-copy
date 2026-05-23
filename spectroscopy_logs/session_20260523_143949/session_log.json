@@ -1,0 +1,23 @@
+{
+  "session_id": "20260523_143949",
+  "start_time": "2026-05-23T14:39:49.652979",
+  "measurements": [
+    {
+      "measurement_id": 1,
+      "sample_id": "sample_1779572389",
+      "timestamp": "2026-05-23T14:39:49.681837",
+      "peaks_detected": 3,
+      "biosignature_analysis": {
+        "chlorophyll": false,
+        "carotenoids": false,
+        "organics": true,
+        "organic_pct": null,
+        "confidence": "low",
+        "interpretation": "Weak biosignature detected"
+      },
+      "spectrum_file": "spectroscopy_logs/session_20260523_143949/spectra/sample_1779572389_spectrum.npz",
+      "image_file": "spectroscopy_logs/session_20260523_143949/images/sample_1779572389_raw.npy"
+    }
+  ],
+  "end_time": "2026-05-23T14:39:49.683125"
+}
