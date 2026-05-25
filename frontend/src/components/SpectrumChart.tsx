@@ -9,14 +9,15 @@ import {
   XAxis,
   YAxis,
 } from "recharts";
+import { useSensorSample } from "../hooks/useSensorSample";
 import { SpectrumPayload } from "../types";
 
 interface Props {
   spectrum: SpectrumPayload | null;
+  serviceError: string | null;
+  onSampleComplete: () => void;
 }
 
-// Fixed 6-channel definitions — display order Red → Blue,
-// wlMin/wlMax used to look up values from the wavelength array.
 const BANDS = [
   { name: "Red",    range: "620–750 nm", wlMin: 620, wlMax: 750, fill: "#EF4444" },
   { name: "Orange", range: "590–620 nm", wlMin: 590, wlMax: 620, fill: "#F97316" },
@@ -26,11 +27,14 @@ const BANDS = [
   { name: "Blue",   range: "450–495 nm", wlMin: 450, wlMax: 495, fill: "#3B82F6" },
 ];
 
-export default function SpectrumChart({ spectrum }: Props) {
-  // Extract one intensity value per band from the wavelength/intensity arrays.
-  // The backend generates a flat segment of points per band; any wavelength
-  // inside the band's range carries the same intensity, so we just find the
-  // first wavelength that falls inside each band's range.
+export default function SpectrumChart({
+  spectrum,
+  serviceError,
+  onSampleComplete,
+}: Props) {
+  const { sample, busy, error } = useSensorSample("peaks_colors", onSampleComplete);
+  const displayError = error ?? serviceError;
+
   const data = BANDS.map((band) => {
     let raw: number | null = null;
     if (spectrum) {
@@ -59,12 +63,16 @@ export default function SpectrumChart({ spectrum }: Props) {
         </h2>
         <p className="mono text-[11px] tracking-wider text-ash mt-1">
           {spectrum
-            ? `Sample ${spectrum.sample_id}`
-            : "Awaiting first acquisition"}
+            ? `Live · ${spectrum.sample_id}`
+            : "Run a peak-colors sample to load data"}
         </p>
       </header>
 
       <div className="tick-rule" />
+
+      {displayError && (
+        <p className="mono text-[10px] text-blood tracking-wider">{displayError}</p>
+      )}
 
       {!spectrum ? (
         <div className="flex-1 flex items-center justify-center">
@@ -73,7 +81,7 @@ export default function SpectrumChart({ spectrum }: Props) {
           </span>
         </div>
       ) : (
-        <div className="flex-1 min-h-0" key={spectrum.sample_id}>
+        <div className="flex-1 min-h-0" key={spectrum.timestamp}>
           <ResponsiveContainer width="100%" height="100%">
             <BarChart
               data={data}
@@ -134,6 +142,17 @@ export default function SpectrumChart({ spectrum }: Props) {
           </ResponsiveContainer>
         </div>
       )}
+
+      <button
+        type="button"
+        disabled={busy}
+        onClick={() => void sample()}
+        className={`btn text-xs px-4 py-2 self-start ${
+          busy ? "btn-ghost opacity-50 cursor-not-allowed" : "btn-primary"
+        }`}
+      >
+        {busy ? "Sampling…" : "Sample Peak Colors"}
+      </button>
     </section>
   );
 }

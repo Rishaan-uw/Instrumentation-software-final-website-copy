@@ -7,6 +7,7 @@ Wants=network-online.target
 Type=simple
 User=@@USER@@
 WorkingDirectory=@@INSTALL_DIR@@
+EnvironmentFile=-@@INSTALL_DIR@@/camera.env
 EnvironmentFile=-@@INSTALL_DIR@@/.env
 ExecStart=@@INSTALL_DIR@@/.venv/bin/uvicorn backend.main:app --host 0.0.0.0 --port 8000
 Restart=on-failure

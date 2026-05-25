@@ -7,76 +7,91 @@ import FovScreenshotPanel from "../components/FovScreenshotPanel";
 import ConfidenceBadge from "../components/ConfidenceBadge";
 import ControlBar from "../components/ControlBar";
 import SpectrumChart from "../components/SpectrumChart";
+import TempHumidityPanel from "../components/TempHumidityPanel";
 import { usePolling } from "../hooks/usePolling";
-import { CameraInfo, ColorReadReading, SpectrumPayload, SystemStatus } from "../types";
-
-interface Envelope<T> {
-  status: "ok" | "no_data";
-  data?: T;
-}
+import { usePollingEnvelope } from "../hooks/usePollingEnvelope";
+import { CameraInfo, ColorReadReading, SpectrumPayload, SystemStatus, TempHumidityReading } from "../types";
 
 export default function Dashboard() {
-  const [statusBump, setStatusBump] = useState(0);
-  const [colorReadBump, setColorReadBump] = useState(0);
+  const [chemBump, setChemBump] = useState(0);
+  const [spectrumBump, setSpectrumBump] = useState(0);
+  const [tempBump, setTempBump] = useState(0);
 
   const cameras =
     usePolling(() => api.get<{ cameras: CameraInfo[] }>("/api/cameras"), 10_000) ?? {
       cameras: [],
     };
 
-  const status = usePolling<SystemStatus>(
-    () => api.get<SystemStatus>("/api/status"),
-    2_000,
-    [statusBump],
-  );
+  const status = usePolling<SystemStatus>(() => api.get<SystemStatus>("/api/status"), 2_000);
 
-  const spectrumEnv = usePolling<Envelope<SpectrumPayload>>(
-    () => api.get<Envelope<SpectrumPayload>>("/api/spectrum/latest"),
+  const { data: colorRead, error: chemServiceError } = usePollingEnvelope<ColorReadReading>(
+    "/api/chem/latest",
     1_000,
-    [colorReadBump],
+    [chemBump],
   );
-  const spectrum = spectrumEnv?.data ?? null;
 
-  const colorReadEnv = usePolling<Envelope<ColorReadReading>>(
-    () => api.get<Envelope<ColorReadReading>>("/api/chem/latest"),
+  const { data: spectrum, error: spectrumServiceError } = usePollingEnvelope<SpectrumPayload>(
+    "/api/spectrum/latest",
     1_000,
-    [colorReadBump],
+    [spectrumBump],
   );
-  const colorRead = colorReadEnv?.data ?? null;
 
-  const handleControlChanged = () => {
-    setStatusBump((n) => n + 1);
-    setTimeout(() => setColorReadBump((n) => n + 1), 300);
-    setTimeout(() => setColorReadBump((n) => n + 1), 1500);
+  const { data: tempReading, error: tempServiceError } = usePollingEnvelope<TempHumidityReading>(
+    "/api/sensors/temp_humidity/latest",
+    1_000,
+    [tempBump],
+  );
+
+  const refreshChem = () => {
+    setChemBump((n) => n + 1);
+    window.setTimeout(() => setChemBump((n) => n + 1), 500);
+  };
+
+  const refreshSpectrum = () => {
+    setSpectrumBump((n) => n + 1);
+    window.setTimeout(() => setSpectrumBump((n) => n + 1), 500);
+  };
+
+  const refreshTemp = () => {
+    setTempBump((n) => n + 1);
+    window.setTimeout(() => setTempBump((n) => n + 1), 500);
   };
 
   return (
     <div className="stagger flex flex-col gap-5" style={{ ["--stagger" as string]: "70ms" }}>
       <div style={{ ["--i" as string]: 0 }}>
-        <ControlBar
-          status={status}
-          onChanged={handleControlChanged}
-        />
+        <ControlBar status={status} />
       </div>
 
       <div style={{ ["--i" as string]: 1 }}>
         <ActionPanel />
       </div>
 
-      {/* Hero: surface biosignals + spectrum in an asymmetric 5+7 column grid */}
       <div
         className="grid grid-cols-1 lg:grid-cols-12 gap-5"
-        style={{ ["--i" as string]: 1 }}
+        style={{ ["--i" as string]: 2 }}
       >
-        <div className="lg:col-span-5 order-2 lg:order-1">
-          <ConfidenceBadge reading={colorRead} />
+        <div className="lg:col-span-4 flex flex-col gap-5">
+          <ConfidenceBadge
+            reading={colorRead}
+            serviceError={chemServiceError}
+            onSampleComplete={refreshChem}
+          />
+          <TempHumidityPanel
+            reading={tempReading}
+            serviceError={tempServiceError}
+            onSampleComplete={refreshTemp}
+          />
         </div>
-        <div className="lg:col-span-7 order-1 lg:order-2">
-          <SpectrumChart spectrum={spectrum} />
+        <div className="lg:col-span-8">
+          <SpectrumChart
+            spectrum={spectrum}
+            serviceError={spectrumServiceError}
+            onSampleComplete={refreshSpectrum}
+          />
         </div>
       </div>
 
-      {/* Camera bank + screenshot rail */}
       <div style={{ ["--i" as string]: 3 }}>
         <div className="flex flex-col lg:flex-row gap-6 lg:items-start">
           <div className="min-w-0 w-full lg:grow-[2] lg:basis-0">
@@ -99,7 +114,6 @@ export default function Dashboard() {
           </aside>
         </div>
       </div>
-
     </div>
   );
 }

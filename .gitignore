@@ -1,0 +1,15 @@
+# Python
+.venv/
+__pycache__/
+*.pyc
+
+# Node / frontend build tooling
+frontend/node_modules/
+frontend/tsconfig.tsbuildinfo
+frontend/tsconfig.node.tsbuildinfo
+
+# Spectroscopy session logs (runtime data)
+spectroscopy_logs/
+
+# Large binary arrays
+*.npy

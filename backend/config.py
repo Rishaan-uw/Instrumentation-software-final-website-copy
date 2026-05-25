@@ -1,8 +1,8 @@
 """Runtime configuration loaded from environment variables.
 
 Defaults are picked so the backend boots usefully on a laptop with no
-hardware attached (mock chem source, no cameras). At competition the
-environment file overrides these to point at real devices.
+hardware attached. At competition the environment file overrides these
+to point at real devices.
 """
 
 from __future__ import annotations
@@ -30,24 +30,17 @@ class Settings(BaseSettings):
 
     # Comma-separated camera device specs. Each entry can be a numeric
     # index ("0"), a /dev path ("/dev/video2"), or "name:index" / "name:/dev/...".
-    # Examples:
-    #   HUSKY_CAMERAS="microscope:0,overview:1"
-    #   HUSKY_CAMERAS="0"
     cameras: str = ""
 
-    # Color read test source (colorReadTest.csv → Organic Analysis panel).
-    #   "mock"  – fixed sample pct_diff for laptop dev
-    #   "csv"   – reads colorReadTest.csv from the Pi
-    chem_source: str = "mock"
-
-    # Path to colorReadTest.csv on the Pi. Column: pct_diff
-    color_read_csv_path: str = "/home/robot/HR-pi/output_data/colorReadTest.csv"
+    # Pi robot service (actions + sensor sampling + CSV reads) on port 9001.
+    robot_service_url: str = "http://127.0.0.1:9001"
+    robot_service_token: str = ""
+    robot_service_timeout: float = 10.0
 
     # Where SpectroscopyLogger writes sessions.
     log_dir: str = "spectroscopy_logs"
 
     # Path the SampleRunner reads raw 2D frames from in mock/dev mode.
-    # In production this is replaced by a real sensor driver.
     test_image_path: str = "test_spectrum.npy"
 
     # Streaming knobs - tune for the rover radio.
@@ -58,26 +51,15 @@ class Settings(BaseSettings):
     frontend_dist: str = "frontend/dist"
 
     # URL of the robot-side camera switching service (camera_service.py).
-    # Example: "http://100.80.12.52:9000"
-    # Leave empty to disable camera switching.
     cam_svc_url: str = ""
 
     # Shared token sent as X-Camera-Token header to the camera service.
-    # Must match CAMERA_SVC_TOKEN on the rover.  Leave empty to disable.
     cam_svc_token: str = ""
 
-    # Spectrometer source.
-    #   "mock"  – uses test_spectrum.npy (default, works without hardware)
-    #   "csv"   – reads color-band CSV from the Pi (production)
+    # Spectrometer source for SampleRunner session logging only.
+    #   "mock"  – test_spectrum.npy
+    #   "csv"   – legacy local CSV poller (not used for dashboard graph)
     spectrometer_source: str = "mock"
-
-    # Path to peaks_colors.csv on the Pi (6-band spectrometer graph).
-    # Columns: Red,Orange,Yellow,Green,Cyan,Blue
-    color_csv_path: str = "/home/robot/HR-pi/output_data/peaks_colors.csv"
-
-    # If set, /api/spectrum/latest proxies this URL instead of reading local state.
-    # Example: "http://100.80.12.52:9001/spectrum"
-    spectrum_api_url: str = ""
 
     @property
     def camera_specs(self) -> List[str]:

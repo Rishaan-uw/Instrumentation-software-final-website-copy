@@ -47,7 +47,7 @@ export default function Sessions() {
 
         {sessions.length === 0 ? (
           <p className="mono text-xs text-ash tracking-wider">
-            No sessions recorded. Engage the pipeline to start one.
+            No sessions recorded yet.
           </p>
         ) : (
           <ul className="space-y-0">
@@ -140,7 +140,7 @@ export default function Sessions() {
                         {m.peaks_detected.toString().padStart(2, "0")}
                       </td>
                       <td className="py-2 pr-4 mono tracking-wider uppercase text-xs">
-                        <ConfTag conf={m.biosignature_analysis.confidence} />
+                        <ConfTag conf={m.biosignature_analysis} />
                       </td>
                     </tr>
                   ))}
@@ -154,12 +154,15 @@ export default function Sessions() {
   );
 }
 
-function ConfTag({ conf }: { conf: "none" | "low" | "medium" | "high" }) {
+function ConfTag({ conf }: { conf: Record<string, unknown> }) {
+  const level = conf.confidence;
+  const label =
+    typeof level === "string" ? level : JSON.stringify(conf).slice(0, 24);
   const color =
-    conf === "high"
+    level === "high"
       ? "text-sage"
-      : conf === "medium" || conf === "low"
+      : level === "medium" || level === "low"
         ? "text-amber"
         : "text-ash";
-  return <span className={`${color}`}>{conf}</span>;
+  return <span className={`${color}`}>{label}</span>;
 }

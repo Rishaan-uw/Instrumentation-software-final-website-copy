@@ -60,8 +60,10 @@ systemctl enable husky-science.service
 cat <<EOF
 
 Done. Next steps:
-  1. Edit ${INSTALL_DIR}/.env to set HUSKY_TOKEN, HUSKY_CAMERAS, HUSKY_CHEM_SOURCE.
-  2. systemctl start husky-science
-  3. Open http://<pi-hostname>:8000 from the base station.
+  1. On the Pi, copy robot_service.py to /home/robot/robot_service.py and run:
+       uvicorn robot_service:app --host 0.0.0.0 --port 9001
+  2. On the base station/laptop, edit camera.env: HUSKY_ROBOT_SERVICE_URL, HUSKY_CAMERAS, HUSKY_TOKEN.
+  3. Run the main backend: uvicorn backend.main:app --host 127.0.0.1 --port 8000
+  4. Open the dashboard (frontend dev server or built dist).
 
 EOF

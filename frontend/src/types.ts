@@ -59,6 +59,27 @@ export interface RobotAction {
   error: string | null;
 }
 
+export interface TempHumidityReading {
+  timestamp: number;
+  temperature: number;
+  humidity: number;
+}
+
+export interface RobotJobStatus {
+  busy: boolean;
+  kind: "action" | "sensor" | null;
+  id: string | null;
+  running: boolean;
+  started_at: number | null;
+  finished_at: number | null;
+  elapsed_s: number | null;
+  exit_code: number | null;
+  stdout: string;
+  stderr: string;
+  error: string | null;
+  result: Record<string, unknown> | null;
+}
+
 export interface SessionDetail {
   session_id: string;
   start_time: string;

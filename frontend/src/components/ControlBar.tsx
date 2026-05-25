@@ -1,27 +1,11 @@
-import { useState } from "react";
-import { api } from "../api/client";
 import { SystemStatus } from "../types";
-
-export type ControlAction = "start" | "stop" | "sample";
 
 interface Props {
   status: SystemStatus | null;
-  onChanged: (action: ControlAction) => void;
 }
 
-export default function ControlBar({ status, onChanged }: Props) {
-  const [busy, setBusy] = useState(false);
-
-  const run = async (path: string, action: ControlAction) => {
-    setBusy(true);
-    try {
-      await api.post(path);
-      onChanged(action);
-    } finally {
-      setBusy(false);
-    }
-  };
-
+/** Session telemetry only — Engage/Halt/Sample removed in favor of sensor sample buttons. */
+export default function ControlBar({ status }: Props) {
   const statusKey = status?.status ?? "unknown";
   const isRunning = statusKey === "running";
   const isError = statusKey === "error";
@@ -43,40 +27,7 @@ export default function ControlBar({ status, onChanged }: Props) {
         <div className="flex items-center gap-8">
           <KV label="Session" value={status?.session_id ?? "----"} />
           <KV label="Samples" value={status?.sample_count ?? 0} accent />
-          <KV
-            label="Last"
-            value={status?.last_sample_id ?? "none"}
-            muted
-          />
-        </div>
-
-        <div className="flex-1" />
-
-        <div className="flex items-center gap-2">
-          <button
-            className="btn btn-primary"
-            disabled={busy || isRunning}
-            onClick={() => run("/api/start", "start")}
-          >
-            <Glyph>&#9654;</Glyph>
-            Engage
-          </button>
-          <button
-            className="btn btn-ghost"
-            disabled={busy}
-            onClick={() => run("/api/sample", "sample")}
-          >
-            <Glyph>&#9673;</Glyph>
-            Sample
-          </button>
-          <button
-            className="btn btn-danger"
-            disabled={busy || !isRunning}
-            onClick={() => run("/api/stop", "stop")}
-          >
-            <Glyph>&#9632;</Glyph>
-            Halt
-          </button>
+          <KV label="Last" value={status?.last_sample_id ?? "none"} muted />
         </div>
       </div>
 
@@ -112,8 +63,4 @@ function KV({
       </span>
     </div>
   );
-}
-
-function Glyph({ children }: { children: React.ReactNode }) {
-  return <span className="text-[10px] opacity-80">{children}</span>;
 }

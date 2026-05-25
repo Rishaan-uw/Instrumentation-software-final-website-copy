@@ -134,7 +134,7 @@ class SampleRunner:
         path = self._settings.test_image_path
         if not os.path.exists(path):
             raise FileNotFoundError(
-                f"No frame source at {path!r}. Run `python3 testdata.py` first or wire a real sensor."
+                f"No frame source at {path!r}. Add test_spectrum.npy or wire a real sensor."
             )
         base = np.load(path)
         noise = np.random.normal(0, 50, base.shape)

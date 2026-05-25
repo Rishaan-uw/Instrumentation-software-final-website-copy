@@ -1,15 +1,10 @@
 """FastAPI entry point.
 
-Wires together:
-  - config + system state + auth
-  - color read source (mock or colorReadTest.csv)
-  - camera manager
-  - spectrometer service + sample runner
-  - all routers
-  - the built React frontend (served from / when present)
+Run on the base station / laptop (not on the Pi):
+  uvicorn backend.main:app --host 127.0.0.1 --port 8000
 
-Run on the rover:
-  uvicorn backend.main:app --host 0.0.0.0 --port 8000
+Pi robot service (port 9001):
+  uvicorn robot_service:app --host 0.0.0.0 --port 9001
 """
 
 from __future__ import annotations
@@ -23,9 +18,9 @@ from fastapi.responses import JSONResponse
 from fastapi.staticfiles import StaticFiles
 
 from .config import get_settings
-from .routers import actions, calibration, cameras, chem, control, sessions, spectrum
+from .robot_client import get_robot_client
+from .routers import actions, calibration, cameras, chem, control, sensors, sessions, spectrum
 from .sources.camera import CameraManager
-from .sources.chem import build_chem_source
 from .sources.spectrometer import CsvColorSpectrometer, SpectrometerService
 from .state import get_state
 from .workers.sample_runner import SampleRunner
@@ -33,7 +28,7 @@ from .workers.sample_runner import SampleRunner
 
 def _build_spectrometer(settings):
     if settings.spectrometer_source == "csv":
-        return CsvColorSpectrometer(color_csv=settings.color_csv_path)
+        return CsvColorSpectrometer(color_csv="/home/robot/HR-pi/output_data/peaks_colors.csv")
     return SpectrometerService()
 
 
@@ -45,25 +40,21 @@ async def lifespan(app: FastAPI):
     spectrometer = _build_spectrometer(settings)
     spectrometer.set_calibration([(p.pixel, p.wavelength_nm) for p in state.calibration])
 
-    chem_source = build_chem_source(settings.chem_source, settings.color_read_csv_path)
-    chem_source.start()
-
     camera_manager = CameraManager(settings.camera_specs)
-
     runner = SampleRunner(settings=settings, state=state, spectrometer=spectrometer)
+    robot_client = get_robot_client(settings)
 
     app.state.settings = settings
     app.state.system_state = state
     app.state.spectrometer = spectrometer
-    app.state.chem_source = chem_source
     app.state.camera_manager = camera_manager
     app.state.runner = runner
+    app.state.robot_client = robot_client
 
     try:
         yield
     finally:
         runner.stop()
-        chem_source.stop()
         camera_manager.release_all()
 
 
@@ -74,8 +65,6 @@ def create_app() -> FastAPI:
         lifespan=lifespan,
     )
 
-    # CORS is permissive because operators typically open the page directly
-    # from the Pi on the rover network. Tighten in production if needed.
     app.add_middleware(
         CORSMiddleware,
         allow_origins=["*"],
@@ -84,6 +73,7 @@ def create_app() -> FastAPI:
     )
 
     app.include_router(actions.router)
+    app.include_router(sensors.router)
     app.include_router(control.router)
     app.include_router(spectrum.router)
     app.include_router(chem.router)
@@ -100,7 +90,7 @@ def create_app() -> FastAPI:
         settings = app.state.settings
         return {
             "auth_enabled": settings.auth_enabled,
-            "chem_source": settings.chem_source,
+            "robot_service_url": settings.robot_service_url,
             "cameras": [c.__dict__ for c in app.state.camera_manager.list()],
         }
 

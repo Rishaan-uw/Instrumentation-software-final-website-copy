@@ -1,61 +1,54 @@
-"""Spectrum endpoints. Frontend SpectrumChart polls /api/spectrum/latest."""
+"""Spectrometer graph — formatted from robot peaks_colors sensor."""
 
 from __future__ import annotations
 
 import time
 
-import httpx
 from fastapi import APIRouter, Depends, HTTPException, Request, status
 
 from ..auth import require_token
+from ..robot_client import RobotServiceError
 
 router = APIRouter(prefix="/api/spectrum", tags=["spectrum"], dependencies=[Depends(require_token)])
 
-
-def _live_csv_payload(request: Request) -> dict | None:
-    """Return the latest peaks_colors spectrometer data from the Pi CSV poller."""
-    result = request.app.state.spectrometer.analyze(None)
-    if not result.get("wavelengths"):
-        return None
-    return {
-        "sample_id": "live",
-        "timestamp": time.time(),
-        **result,
-    }
+COLOR_ORDER = ["Blue", "Cyan", "Green", "Yellow", "Orange", "Red"]
+MIDPOINTS = [472.5, 492.5, 532.5, 580.0, 605.0, 685.0]
 
 
 @router.get("/latest")
 async def latest(request: Request):
-    settings = request.app.state.settings
+    client = request.app.state.robot_client
+    try:
+        payload = client.sensor_latest_raw("peaks_colors")
+    except RobotServiceError as exc:
+        raise HTTPException(status_code=exc.status_code, detail=str(exc))
 
-    # Production: read peaks_colors.csv from the Pi.
-    if settings.spectrometer_source == "csv":
-        payload = _live_csv_payload(request)
-        if payload is None:
-            return {"status": "no_data"}
-        return {"status": "ok", "data": payload}
-
-    # Optional remote proxy for deployments that expose spectrum over HTTP.
-    if settings.spectrum_api_url:
-        try:
-            async with httpx.AsyncClient(timeout=5.0) as client:
-                resp = await client.get(settings.spectrum_api_url)
-                resp.raise_for_status()
-                return resp.json()
-        except httpx.HTTPStatusError as exc:
-            raise HTTPException(
-                status_code=exc.response.status_code,
-                detail=f"Spectrum API error: {exc.response.text}",
-            )
-        except Exception as exc:
-            raise HTTPException(
-                status_code=status.HTTP_502_BAD_GATEWAY,
-                detail=f"Spectrum API unreachable: {exc}",
-            )
-
-    # Dev mock mode: last sample captured by SampleRunner.
-    state = request.app.state.system_state
-    payload = state.get_latest_spectrum()
     if payload is None:
+        raise HTTPException(
+            status_code=status.HTTP_502_BAD_GATEWAY,
+            detail="Robot service unreachable",
+        )
+
+    if payload.get("status") != "ok":
         return {"status": "no_data"}
-    return {"status": "ok", "data": payload}
+
+    raw = payload.get("data") or {}
+    peaks = raw.get("peaks") or raw
+    intensities = []
+    for color in COLOR_ORDER:
+        try:
+            intensities.append(float(peaks[color]))
+        except (KeyError, TypeError, ValueError):
+            return {"status": "no_data"}
+
+    return {
+        "status": "ok",
+        "data": {
+            "sample_id": "csv-live",
+            "timestamp": time.time(),
+            "wavelengths": MIDPOINTS,
+            "intensities": intensities,
+            "peak_wavelengths": MIDPOINTS,
+            "peak_intensities": intensities,
+        },
+    }

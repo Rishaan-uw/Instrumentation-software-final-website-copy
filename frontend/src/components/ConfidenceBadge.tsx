@@ -1,12 +1,21 @@
+import { useSensorSample } from "../hooks/useSensorSample";
 import { ColorReadReading } from "../types";
 
 interface Props {
   reading: ColorReadReading | null;
+  serviceError: string | null;
+  onSampleComplete: () => void;
 }
 
-export default function ConfidenceBadge({ reading }: Props) {
+export default function ConfidenceBadge({
+  reading,
+  serviceError,
+  onSampleComplete,
+}: Props) {
+  const { sample, busy, error } = useSensorSample("color_read", onSampleComplete);
   const pct = reading?.pct_diff ?? null;
   const detected = reading?.organics_detected ?? false;
+  const displayError = error ?? serviceError;
 
   return (
     <section className="panel p-6 md:p-8 h-full flex flex-col overflow-hidden relative">
@@ -37,7 +46,7 @@ export default function ConfidenceBadge({ reading }: Props) {
         Organic matter — colorReadTest pct_diff
       </div>
 
-      <div className="flex flex-col gap-1">
+      <div className="flex flex-col gap-1 mb-4">
         <span
           className={`mono text-[10px] tracking-[0.25em] uppercase ${
             detected ? "text-sage" : "text-ash"
@@ -55,6 +64,21 @@ export default function ConfidenceBadge({ reading }: Props) {
           </span>
         )}
       </div>
+
+      {displayError && (
+        <p className="mono text-[10px] text-blood tracking-wider mb-3">{displayError}</p>
+      )}
+
+      <button
+        type="button"
+        disabled={busy}
+        onClick={() => void sample()}
+        className={`btn text-xs px-4 py-2 self-start ${
+          busy ? "btn-ghost opacity-50 cursor-not-allowed" : "btn-primary"
+        }`}
+      >
+        {busy ? "Sampling…" : "Sample Color Read"}
+      </button>
     </section>
   );
 }

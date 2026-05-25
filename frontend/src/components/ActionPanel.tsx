@@ -5,7 +5,7 @@
  */
 
 import { useEffect, useState } from "react";
-import { api } from "../api/client";
+import { api, ApiError } from "../api/client";
 import { RobotAction } from "../types";
 
 const POLL_MS = 1_500;
@@ -13,13 +13,17 @@ const POLL_MS = 1_500;
 export default function ActionPanel() {
   const [actions, setActions] = useState<RobotAction[]>([]);
   const [expanded, setExpanded] = useState<string | null>(null);
+  const [serviceError, setServiceError] = useState<string | null>(null);
 
   const fetchAll = async () => {
     try {
       const data = await api.get<RobotAction[]>("/api/actions");
       setActions(data);
-    } catch {
-      /* keep last known state */
+      setServiceError(null);
+    } catch (e: unknown) {
+      setServiceError(
+        e instanceof ApiError ? e.message : "Robot service unavailable",
+      );
     }
   };
 
@@ -41,18 +45,19 @@ export default function ActionPanel() {
       await fetchAll();
       setExpanded(actionId);
     } catch (e: unknown) {
-      const msg = e instanceof Error ? e.message : "Failed to start action";
+      const msg = e instanceof ApiError ? e.message : "Failed to start action";
       alert(msg);
     }
   };
-
-  if (actions.length === 0) return null;
 
   return (
     <section className="panel p-5">
       <header className="mb-4">
         <div className="eyebrow">ROBOT / AUTOMATION</div>
         <h2 className="display text-bone text-2xl mt-1">Actions</h2>
+        {serviceError && (
+          <p className="mono text-[10px] text-blood tracking-wider mt-2">{serviceError}</p>
+        )}
       </header>
 
       <div className="flex flex-col gap-3">
