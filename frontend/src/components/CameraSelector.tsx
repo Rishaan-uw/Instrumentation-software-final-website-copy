@@ -20,7 +20,11 @@ const CAMERA_OPTIONS = [
   { id: "video4", label: "Video 4" },
 ] as const;
 
-export default function CameraSelector() {
+interface Props {
+  onActiveCameraChanged?: (cameraId: string | null) => void;
+}
+
+export default function CameraSelector({ onActiveCameraChanged }: Props) {
   const [status, setStatus] = useState<SwitcherStatus | null>(null);
   const [busy, setBusy] = useState<string | null>(null); // id of camera being activated
   const [error, setError] = useState<string | null>(null);
@@ -29,6 +33,7 @@ export default function CameraSelector() {
     try {
       const s = await api.get<SwitcherStatus>("/api/cameras/switcher/status");
       setStatus(s);
+      onActiveCameraChanged?.(s.running ? s.active_camera ?? null : null);
     } catch {
       /* keep last known status */
     }
@@ -38,7 +43,7 @@ export default function CameraSelector() {
     fetchStatus();
     const id = window.setInterval(fetchStatus, 5_000);
     return () => window.clearInterval(id);
-  }, []);
+  }, [onActiveCameraChanged]);
 
   if (!status?.configured) return null;
 

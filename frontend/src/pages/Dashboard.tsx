@@ -10,12 +10,31 @@ import SpectrumChart from "../components/SpectrumChart";
 import TempHumidityPanel from "../components/TempHumidityPanel";
 import { usePolling } from "../hooks/usePolling";
 import { usePollingEnvelope } from "../hooks/usePollingEnvelope";
-import { CameraInfo, ColorReadReading, SpectrumPayload, SystemStatus, TempHumidityReading } from "../types";
+import {
+  CameraDevice,
+  CameraInfo,
+  ColorReadReading,
+  SpectrumPayload,
+  SystemStatus,
+  TempHumidityReading,
+} from "../types";
+
+const CAMERA_DEVICE_OPTIONS: CameraDevice[] = ["/dev/video0", "/dev/video2", "/dev/video4"];
+
+function mapVideoIdToDevice(cameraId: string | null): CameraDevice | null {
+  if (cameraId === "video0") return "/dev/video0";
+  if (cameraId === "video2") return "/dev/video2";
+  if (cameraId === "video4") return "/dev/video4";
+  return null;
+}
 
 export default function Dashboard() {
   const [chemBump, setChemBump] = useState(0);
   const [spectrumBump, setSpectrumBump] = useState(0);
   const [tempBump, setTempBump] = useState(0);
+  const [spectrometerCameraDevice, setSpectrometerCameraDevice] =
+    useState<CameraDevice>("/dev/video0");
+  const [cameraDeviceInitialized, setCameraDeviceInitialized] = useState(false);
 
   const cameras =
     usePolling(() => api.get<{ cameras: CameraInfo[] }>("/api/cameras"), 10_000) ?? {
@@ -64,7 +83,7 @@ export default function Dashboard() {
       </div>
 
       <div style={{ ["--i" as string]: 1 }}>
-        <ActionPanel />
+        <ActionPanel spectrometerCameraDevice={spectrometerCameraDevice} />
       </div>
 
       <div
@@ -88,6 +107,7 @@ export default function Dashboard() {
             spectrum={spectrum}
             serviceError={spectrumServiceError}
             onSampleComplete={refreshSpectrum}
+            spectrometerCameraDevice={spectrometerCameraDevice}
           />
         </div>
       </div>
@@ -97,7 +117,34 @@ export default function Dashboard() {
           <div className="min-w-0 w-full lg:grow-[2] lg:basis-0">
             <div className="flex items-end justify-between mb-3 gap-4 flex-wrap">
               <SectionHeader eyebrow="Optical / Live" title="Field of View" noMargin />
-              <CameraSelector />
+              <div className="flex flex-wrap items-end gap-4">
+                <label className="flex flex-col gap-1">
+                  <span className="eyebrow">Spectrometer Device</span>
+                  <select
+                    value={spectrometerCameraDevice}
+                    onChange={(e) =>
+                      setSpectrometerCameraDevice(e.target.value as CameraDevice)
+                    }
+                    className="btn btn-ghost text-xs px-3 py-1.5 min-w-[140px]"
+                  >
+                    {CAMERA_DEVICE_OPTIONS.map((device) => (
+                      <option key={device} value={device}>
+                        {device}
+                      </option>
+                    ))}
+                  </select>
+                </label>
+                <CameraSelector
+                  onActiveCameraChanged={(activeCameraId) => {
+                    if (cameraDeviceInitialized) return;
+                    const mapped = mapVideoIdToDevice(activeCameraId);
+                    if (mapped) {
+                      setSpectrometerCameraDevice(mapped);
+                    }
+                    setCameraDeviceInitialized(true);
+                  }}
+                />
+              </div>
             </div>
             {cameras.cameras.length === 0 ? (
               <EmptyCameras />

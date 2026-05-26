@@ -6,11 +6,15 @@
 
 import { useEffect, useState } from "react";
 import { api, ApiError } from "../api/client";
-import { RobotAction } from "../types";
+import { CameraDevice, RobotAction } from "../types";
 
 const POLL_MS = 1_500;
 
-export default function ActionPanel() {
+interface Props {
+  spectrometerCameraDevice: CameraDevice;
+}
+
+export default function ActionPanel({ spectrometerCameraDevice }: Props) {
   const [actions, setActions] = useState<RobotAction[]>([]);
   const [expanded, setExpanded] = useState<string | null>(null);
   const [serviceError, setServiceError] = useState<string | null>(null);
@@ -41,7 +45,11 @@ export default function ActionPanel() {
 
   const trigger = async (actionId: string) => {
     try {
-      await api.post(`/api/actions/${encodeURIComponent(actionId)}`);
+      const body =
+        actionId === "calibrate_spectrometer"
+          ? { camera_device: spectrometerCameraDevice }
+          : undefined;
+      await api.post(`/api/actions/${encodeURIComponent(actionId)}`, body);
       await fetchAll();
       setExpanded(actionId);
     } catch (e: unknown) {

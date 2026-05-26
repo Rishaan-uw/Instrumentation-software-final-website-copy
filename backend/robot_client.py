@@ -31,12 +31,13 @@ class RobotClient:
         method: str,
         path: str,
         *,
+        json: Optional[dict] = None,
         allow_connection_error: bool = False,
     ) -> Any:
         url = f"{self._base}{path}"
         try:
             with httpx.Client(timeout=self._timeout) as client:
-                resp = client.request(method, url, headers=self._headers())
+                resp = client.request(method, url, headers=self._headers(), json=json)
         except httpx.RequestError as exc:
             if allow_connection_error:
                 return None
@@ -64,8 +65,9 @@ class RobotClient:
     def list_actions(self) -> List[dict]:
         return self._request("GET", "/robot/actions")
 
-    def start_action(self, action_id: str) -> dict:
-        return self._request("POST", f"/robot/actions/{action_id}/start")
+    def start_action(self, action_id: str, camera_device: Optional[str] = None) -> dict:
+        payload = {"camera_device": camera_device} if camera_device else None
+        return self._request("POST", f"/robot/actions/{action_id}/start", json=payload)
 
     def action_status(self, action_id: str) -> dict:
         return self._request("GET", f"/robot/actions/{action_id}/status")
@@ -73,8 +75,9 @@ class RobotClient:
     def list_sensors(self) -> List[dict]:
         return self._request("GET", "/robot/sensors")
 
-    def start_sensor_sample(self, sensor_id: str) -> dict:
-        return self._request("POST", f"/robot/sensors/{sensor_id}/sample")
+    def start_sensor_sample(self, sensor_id: str, camera_device: Optional[str] = None) -> dict:
+        payload = {"camera_device": camera_device} if camera_device else None
+        return self._request("POST", f"/robot/sensors/{sensor_id}/sample", json=payload)
 
     def sensor_latest_raw(self, sensor_id: str) -> Optional[dict]:
         """Return robot envelope {status, data?} or None if unreachable."""

@@ -38,6 +38,8 @@ export interface CameraInfo {
   available: boolean;
 }
 
+export type CameraDevice = "/dev/video0" | "/dev/video2" | "/dev/video4";
+
 export interface SessionSummary {
   session_id: string;
   start_time: string | null;
@@ -57,6 +59,7 @@ export interface RobotAction {
   stdout: string;
   stderr: string;
   error: string | null;
+  camera_device?: CameraDevice | null;
 }
 
 export interface TempHumidityReading {
@@ -69,6 +72,7 @@ export interface RobotJobStatus {
   busy: boolean;
   kind: "action" | "sensor" | null;
   id: string | null;
+  camera_device?: CameraDevice | null;
   running: boolean;
   started_at: number | null;
   finished_at: number | null;

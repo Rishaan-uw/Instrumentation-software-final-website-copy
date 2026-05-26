@@ -4,7 +4,11 @@ import { RobotJobStatus } from "../types";
 
 const POLL_MS = 1_500;
 
-export function useSensorSample(sensorId: string, onComplete?: () => void) {
+export function useSensorSample(
+  sensorId: string,
+  onComplete?: () => void,
+  buildBody?: () => Record<string, unknown> | undefined,
+) {
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [job, setJob] = useState<RobotJobStatus | null>(null);
@@ -44,7 +48,10 @@ export function useSensorSample(sensorId: string, onComplete?: () => void) {
     setError(null);
     setBusy(true);
     try {
-      await api.post(`/api/sensors/${encodeURIComponent(sensorId)}/sample`);
+      await api.post(
+        `/api/sensors/${encodeURIComponent(sensorId)}/sample`,
+        buildBody?.(),
+      );
       await pollJob();
       pollRef.current = window.setInterval(() => void pollJob(), POLL_MS);
     } catch (e: unknown) {

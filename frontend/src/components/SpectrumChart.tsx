@@ -10,12 +10,13 @@ import {
   YAxis,
 } from "recharts";
 import { useSensorSample } from "../hooks/useSensorSample";
-import { SpectrumPayload } from "../types";
+import { CameraDevice, SpectrumPayload } from "../types";
 
 interface Props {
   spectrum: SpectrumPayload | null;
   serviceError: string | null;
   onSampleComplete: () => void;
+  spectrometerCameraDevice: CameraDevice;
 }
 
 const BANDS = [
@@ -31,8 +32,13 @@ export default function SpectrumChart({
   spectrum,
   serviceError,
   onSampleComplete,
+  spectrometerCameraDevice,
 }: Props) {
-  const { sample, busy, error } = useSensorSample("peaks_colors", onSampleComplete);
+  const { sample, busy, error } = useSensorSample(
+    "peaks_colors",
+    onSampleComplete,
+    () => ({ camera_device: spectrometerCameraDevice }),
+  );
   const displayError = error ?? serviceError;
 
   const data = BANDS.map((band) => {

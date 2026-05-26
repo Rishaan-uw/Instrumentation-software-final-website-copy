@@ -25,6 +25,7 @@ from typing import Any, Callable, Dict, List, Optional, Tuple
 
 from fastapi import Depends, FastAPI, Header, HTTPException, status
 from fastapi.middleware.cors import CORSMiddleware
+from pydantic import BaseModel
 
 # ── Whitelisted actions ───────────────────────────────────────────────────────
 
@@ -90,6 +91,21 @@ SENSORS: Dict[str, dict] = {
 }
 
 ROBOT_TOKEN = os.environ.get("ROBOT_SERVICE_TOKEN", "").strip()
+
+VALID_CAMERA_DEVICES = {"/dev/video0", "/dev/video2", "/dev/video4"}
+DEFAULT_CAMERA_DEVICE = "/dev/video0"
+
+
+class StartRequest(BaseModel):
+    camera_device: Optional[str] = None
+
+
+def validated_camera_device(value: Optional[str]) -> str:
+    if value is None:
+        return DEFAULT_CAMERA_DEVICE
+    if value not in VALID_CAMERA_DEVICES:
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="invalid camera_device")
+    return value
 
 
 # ── CSV helpers ───────────────────────────────────────────────────────────────
@@ -267,6 +283,7 @@ class JobRunner:
         self.busy = False
         self.kind: Optional[str] = None  # "action" | "sensor"
         self.job_id: Optional[str] = None
+        self.camera_device: Optional[str] = None
         self.running = False
         self.started_at: Optional[float] = None
         self.finished_at: Optional[float] = None
@@ -284,36 +301,37 @@ class JobRunner:
                 detail=f"Robot busy ({self.kind}:{self.job_id})",
             )
 
-    def start_action(self, action_id: str) -> None:
+    def start_action(self, action_id: str, camera_device: str) -> None:
         if action_id not in ACTIONS:
             raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="unknown action")
         with self._lock:
             self._busy_conflict()
-            self._reset_job("action", action_id)
+            self._reset_job("action", action_id, camera_device)
             self._thread = threading.Thread(
                 target=self._run_action,
-                args=(action_id,),
+                args=(action_id, camera_device),
                 daemon=True,
             )
             self._thread.start()
 
-    def start_sensor_sample(self, sensor_id: str) -> None:
+    def start_sensor_sample(self, sensor_id: str, camera_device: str) -> None:
         if sensor_id not in SENSORS:
             raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="unknown sensor")
         with self._lock:
             self._busy_conflict()
-            self._reset_job("sensor", sensor_id)
+            self._reset_job("sensor", sensor_id, camera_device)
             self._thread = threading.Thread(
                 target=self._run_sensor_sample,
-                args=(sensor_id,),
+                args=(sensor_id, camera_device),
                 daemon=True,
             )
             self._thread.start()
 
-    def _reset_job(self, kind: str, job_id: str) -> None:
+    def _reset_job(self, kind: str, job_id: str, camera_device: str) -> None:
         self.busy = True
         self.kind = kind
         self.job_id = job_id
+        self.camera_device = camera_device
         self.running = True
         self.started_at = time.time()
         self.finished_at = None
@@ -336,9 +354,12 @@ class JobRunner:
             self.finished_at = time.time()
             self.busy = False
 
-    def _run_action(self, action_id: str) -> None:
+    def _run_action(self, action_id: str, camera_device: str) -> None:
         meta = ACTIONS[action_id]
-        code, out, err, error = run_command_with_timeout(meta["command"], meta["timeout"])
+        command = list(meta["command"])
+        if action_id == "calibrate_spectrometer":
+            command.append(camera_device)
+        code, out, err, error = run_command_with_timeout(command, meta["timeout"])
         with self._lock:
             self.exit_code = code
             self.stdout = out
@@ -346,11 +367,14 @@ class JobRunner:
             self.error = error
         self._finish()
 
-    def _run_sensor_sample(self, sensor_id: str) -> None:
+    def _run_sensor_sample(self, sensor_id: str, camera_device: str) -> None:
         meta = SENSORS[sensor_id]
         path = meta["csv_path"]
         before = csv_marker(path)
-        code, out, err, error = run_command_with_timeout(meta["command"], meta["timeout"])
+        command = list(meta["command"])
+        if sensor_id == "peaks_colors":
+            command.append(camera_device)
+        code, out, err, error = run_command_with_timeout(command, meta["timeout"])
         with self._lock:
             self.exit_code = code
             self.stdout = out
@@ -390,6 +414,7 @@ class JobRunner:
                 "busy": self.busy,
                 "kind": self.kind,
                 "id": self.job_id,
+                "camera_device": self.camera_device,
                 "running": self.running,
                 "started_at": self.started_at,
                 "finished_at": self.finished_at,
@@ -410,6 +435,7 @@ class JobRunner:
             "id": action_id,
             "label": meta["label"],
             "description": meta["description"],
+            "camera_device": job["camera_device"] if is_this else None,
             "running": running,
             "started_at": job["started_at"] if is_this else None,
             "finished_at": job["finished_at"] if is_this else None,
@@ -468,9 +494,19 @@ async def list_actions(_: None = Depends(require_robot_token)) -> list:
 
 
 @app.post("/robot/actions/{action_id}/start")
-async def start_action(action_id: str, _: None = Depends(require_robot_token)) -> dict:
-    _runner.start_action(action_id)
-    return {"ok": True, "action_id": action_id, "started_at": time.time()}
+async def start_action(
+    action_id: str,
+    body: StartRequest | None = None,
+    _: None = Depends(require_robot_token),
+) -> dict:
+    camera_device = validated_camera_device(body.camera_device if body else None)
+    _runner.start_action(action_id, camera_device)
+    return {
+        "ok": True,
+        "action_id": action_id,
+        "camera_device": camera_device if action_id == "calibrate_spectrometer" else None,
+        "started_at": time.time(),
+    }
 
 
 @app.get("/robot/actions/{action_id}/status")
@@ -486,9 +522,19 @@ async def list_sensors(_: None = Depends(require_robot_token)) -> list:
 
 
 @app.post("/robot/sensors/{sensor_id}/sample")
-async def sample_sensor(sensor_id: str, _: None = Depends(require_robot_token)) -> dict:
-    _runner.start_sensor_sample(sensor_id)
-    return {"ok": True, "sensor_id": sensor_id, "started_at": time.time()}
+async def sample_sensor(
+    sensor_id: str,
+    body: StartRequest | None = None,
+    _: None = Depends(require_robot_token),
+) -> dict:
+    camera_device = validated_camera_device(body.camera_device if body else None)
+    _runner.start_sensor_sample(sensor_id, camera_device)
+    return {
+        "ok": True,
+        "sensor_id": sensor_id,
+        "camera_device": camera_device if sensor_id == "peaks_colors" else None,
+        "started_at": time.time(),
+    }
 
 
 @app.get("/robot/sensors/{sensor_id}/latest")
